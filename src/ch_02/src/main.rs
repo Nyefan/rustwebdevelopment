@@ -5,10 +5,9 @@ use warp::Filter;
 #[tokio::main]
 async fn main() {
 
-    question::test();
-
-    let hello = warp::get()
-        .map(|| format!("Hello, World!"));
+    let hello = warp::path("hello")
+        .and(warp::path::param())
+        .map(|name: String| format!("Hello, {}!", name));
 
     warp::serve(hello)
         .run(([127, 0, 0, 1], 8080))
