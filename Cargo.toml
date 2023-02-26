@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "src/ch_01/minimal_reqwest",
+    "src/ch_01/minimal_tcp",
+    "src/ch_01/minimal_warp",
+    "src/ch_02",
+    "src/ch_03"
+]
