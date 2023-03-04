@@ -1,11 +1,11 @@
 use std::fmt::{Display, Formatter};
-use std::num::ParseIntError;
 use warp::reject::Reject;
 
 #[derive(Debug)]
 pub(crate) enum Error {
     ParseError(std::num::ParseIntError),
-    MissingParameters
+    MissingParameters,
+    QuestionNotFound,
 }
 
 impl Display for Error {
@@ -16,6 +16,9 @@ impl Display for Error {
             },
             Error::MissingParameters => {
                 write!(f, "Missing parameters")
+            }
+            Error::QuestionNotFound => {
+                write!(f, "Question not found")
             }
         }
     }

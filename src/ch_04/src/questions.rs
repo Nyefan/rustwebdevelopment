@@ -1,11 +1,13 @@
 use std::collections::HashMap;
-use std::fmt::Display;
-use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use warp::reject::Reject;
 use warp::{Rejection, Reply};
+use warp::http::StatusCode;
+
 use crate::errors::Error;
 use crate::errors::Error::{MissingParameters, ParseError};
+use crate::stores::Store;
 
 #[derive(Clone, Debug)]
 #[derive(Serialize, Deserialize)]
@@ -18,15 +20,10 @@ pub(crate) struct Question {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[derive(Serialize, Deserialize)]
-pub(crate) struct QuestionId(String);
+pub(crate) struct QuestionId(pub(crate) String);
 
 #[derive(Debug)]
 pub(crate) struct InvalidId;
-
-#[derive(Clone, Debug)]
-pub(crate) struct Store {
-    questions: HashMap<QuestionId, Question>,
-}
 
 #[derive(Debug)]
 struct Pagination {
@@ -36,27 +33,42 @@ struct Pagination {
 
 impl Reject for InvalidId {}
 
-impl Store {
-    pub(crate) fn new() -> Self {
-        Store {
-            questions: Self::init(),
-        }
-    }
+pub(crate) async fn create(
+    store: Store,
+    question: Question,
+) -> Result<impl Reply, Rejection> {
+    store
+        .questions
+        .write()
+        .await
+        .insert(question.id.clone(), question);
 
-    pub(crate) fn init() -> HashMap<QuestionId, Question> {
-        let file = include_str!("questions.json");
-        serde_json::from_str(file).expect("can't read questions.json")
-    }
+    Ok(warp::reply::with_status(
+        "Question added",
+        StatusCode::OK,
+    ))
 }
 
-pub(crate) async fn get(params: HashMap<String, String>, store: Store) -> Result<impl Reply, Rejection> {
+pub(crate) async fn read(params: HashMap<String, String>, store: Store) -> Result<impl Reply, Rejection> {
     if !params.is_empty() {
         let pagination = extract_pagination(params)?;
-        let res: Vec<Question> = store.questions.values().cloned().collect();
+        let res: Vec<Question> = store
+            .questions
+            .read()
+            .await
+            .values()
+            .cloned()
+            .collect();
         let res = &res[pagination.start..pagination.end];
         Ok(warp::reply::json(&res))
     } else {
-        let res: Vec<Question> = store.questions.values().cloned().collect();
+        let res: Vec<Question> = store
+            .questions
+            .read()
+            .await
+            .values()
+            .cloned()
+            .collect();
         Ok(warp::reply::json(&res))
     }
 }
@@ -73,9 +85,51 @@ fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination, Err
                 .get("end")
                 .unwrap()
                 .parse::<usize>()
-                .map_err(ParseError)?
+                .map_err(ParseError)?,
         });
     }
 
     Err(MissingParameters)
+}
+
+pub(crate) async fn update(
+    id: String,
+    store: Store,
+    question: Question,
+) -> Result<impl Reply, Rejection> {
+    match store
+        .questions
+        .write().
+        await
+        .get_mut(&QuestionId(id)) {
+        Some(q) => {
+            *q = question;
+            Ok(warp::reply::with_status(
+                "Question updated",
+                StatusCode::OK,
+            ))
+        },
+        None => Err(warp::reject::custom(Error::QuestionNotFound)),
+    }
+}
+
+pub(crate) async fn delete(
+    id: String,
+    store: Store,
+) -> Result<impl Reply, Rejection> {
+    match store
+        .questions
+        .write()
+        .await
+        .remove(&QuestionId(id)) {
+        Some(_) => {
+            Ok(
+                warp::reply::with_status(
+                    "Question deleted",
+                    StatusCode::OK,
+                )
+            )
+        }
+        None => Err(warp::reject::custom(Error::QuestionNotFound))
+    }
 }
