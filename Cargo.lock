@@ -103,6 +103,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ch_05"
+version = "0.1.0"
+dependencies = [
+ "handle-errors",
+ "serde",
+ "serde_json",
+ "tokio",
+ "warp",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -296,6 +307,13 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "handle-errors"
+version = "0.1.0"
+dependencies = [
+ "warp",
 ]
 
 [[package]]

@@ -5,5 +5,6 @@ members = [
     "src/ch_01/minimal_warp",
     "src/ch_02",
     "src/ch_03",
-    "src/ch_04"
+    "src/ch_04",
+    "src/ch_05"
 ]
